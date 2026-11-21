@@ -1,13 +1,5 @@
 package com.example.waitlist.service;
 
-import com.example.waitlist.domain.EnrollmentRoster;
-import com.example.waitlist.domain.LearnerId;
-import com.example.waitlist.domain.Offering;
-import com.example.waitlist.domain.RosterSnapshot;
-import com.example.waitlist.policy.EligibilityPolicy;
-import com.example.waitlist.policy.PrerequisiteEligibilityPolicy;
-import com.example.waitlist.port.LearnerRecords;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +7,13 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.example.waitlist.domain.CourseId;
+import com.example.waitlist.domain.EnrollmentRoster;
+import com.example.waitlist.domain.LearnerId;
+import com.example.waitlist.domain.Offering;
+import com.example.waitlist.domain.RosterSnapshot;
+import com.example.waitlist.policy.EligibilityPolicy;
+import com.example.waitlist.policy.PrerequisiteEligibilityPolicy;
+import com.example.waitlist.port.LearnerRecords;
 
 /**
  * Public API for one offering. Owns the single lock: every public method (reads included) holds it, so
@@ -31,7 +30,8 @@ public final class EnrollmentService {
     private final ReentrantLock lock = new ReentrantLock();
 
     public EnrollmentService(Offering offering, LearnerRecords records) {
-        this(offering, records, new PrerequisiteEligibilityPolicy(offering.prerequisites()));
+        this(Objects.requireNonNull(offering, "offering must not be null"), records,
+                new PrerequisiteEligibilityPolicy(offering.prerequisites()));
     }
 
     public EnrollmentService(Offering offering, LearnerRecords records, EligibilityPolicy policy) {

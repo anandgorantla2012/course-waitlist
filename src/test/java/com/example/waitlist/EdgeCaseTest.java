@@ -1,5 +1,14 @@
 package com.example.waitlist;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+
 import com.example.waitlist.adapter.InMemoryLearnerRecords;
 import com.example.waitlist.domain.CourseId;
 import com.example.waitlist.domain.Offering;
@@ -9,16 +18,10 @@ import com.example.waitlist.service.DropResult;
 import com.example.waitlist.service.EnrollResult;
 import com.example.waitlist.service.EnrollmentService;
 import com.example.waitlist.support.Concurrent;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.example.waitlist.support.TestFixtures.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.example.waitlist.support.TestFixtures.eligible;
+import static com.example.waitlist.support.TestFixtures.id;
+import static com.example.waitlist.support.TestFixtures.offering;
+import static com.example.waitlist.support.TestFixtures.service;
 
 /** Gaps found in the test-matrix comparison and code review (see docs/AI_USE_RECORD.md, Entries 2 and 3). */
 class EdgeCaseTest {
@@ -120,5 +123,16 @@ class EdgeCaseTest {
         fail.set(false);
         assertThat(svc.refreshWaitlist()).containsExactly(id("b")); // seat is reconciled later
         assertThat(svc.snapshot().enrolled()).containsExactly(id("b"));
+    }
+
+    @Test
+    void constructor_nullOffering_failsWithClearMessage() {
+        String message = null;
+        try {
+            new EnrollmentService(null, eligible());
+        } catch (NullPointerException e) {
+            message = e.getMessage();
+        }
+        assertThat(message).contains("offering must not be null");
     }
 }
