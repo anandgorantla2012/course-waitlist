@@ -13,3 +13,9 @@
   cannot prove absence of races.
 - Single offering only; multiple offerings would need a per-offering lock map and lock ordering.
 - The Maven wrapper (`mvnw`) is not committed; generate it with `mvn -N wrapper:wrapper`.
+- If `LearnerRecords` throws during promotion inside `drop`, the drop has already taken effect but the
+  promotion has not: the caller sees an exception, the seat stays open, nothing is corrupted, and the next
+  `enroll`/`drop`/`refreshWaitlist()` reconciles it (covered by `EdgeCaseTest`).
+- `ReentrantLock` is re-entrant: a `LearnerRecords` implementation that calls back into the service from
+  inside `completedCourses` would run while the waitlist is being iterated. Adapters must not do this.
+- Learner ids are case-sensitive strings (`Alice` and `alice` are different learners).
