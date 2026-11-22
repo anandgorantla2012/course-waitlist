@@ -13,6 +13,7 @@ import com.example.waitlist.adapter.InMemoryLearnerRecords;
 import com.example.waitlist.domain.CourseId;
 import com.example.waitlist.domain.Offering;
 import com.example.waitlist.domain.RosterSnapshot;
+import com.example.waitlist.policy.AnyOfPrerequisitesPolicy;
 import com.example.waitlist.port.LearnerRecords;
 import com.example.waitlist.service.DropResult;
 import com.example.waitlist.service.EnrollResult;
@@ -134,5 +135,19 @@ class EdgeCaseTest {
             message = e.getMessage();
         }
         assertThat(message).contains("offering must not be null");
+    }
+
+    @Test
+    void anyOfPolicy_eligibleWithEitherOrBoth_rejectedWithNeither() {
+        Set<CourseId> options = Set.of(CourseId.of("MATH101"), CourseId.of("MATH102"));
+        InMemoryLearnerRecords r = new InMemoryLearnerRecords()
+                .put("a", "MATH101").put("b", "MATH102")
+                .put("c", "MATH101", "MATH102").put("d", "PHYS100");
+        var svc = new EnrollmentService(new Offering(CourseId.of("CS201"), 4, options), r,
+                new AnyOfPrerequisitesPolicy(options));
+        assertThat(svc.enroll(id("a"))).isInstanceOf(EnrollResult.Enrolled.class);
+        assertThat(svc.enroll(id("b"))).isInstanceOf(EnrollResult.Enrolled.class);
+        assertThat(svc.enroll(id("c"))).isInstanceOf(EnrollResult.Enrolled.class);
+        assertThat(svc.enroll(id("d"))).isInstanceOf(EnrollResult.Ineligible.class);
     }
 }
