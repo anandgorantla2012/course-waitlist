@@ -62,8 +62,8 @@ became eligible since the last refresh.
 | I7 | an invalid or repeated operation leaves the snapshot equal to the before-snapshot |
 
 I6 holds after every service call and after `refreshWaitlist()`. If records change and nobody calls the
-service, a free seat can transiently coexist with a newly eligible waiter; the next `enroll`, `drop` or
-`refreshWaitlist()` reconciles first (A5). I7 holds whenever records have not changed since the last call. Because every `enroll` reconciles first (A5), a duplicate request
+service, a free seat can transiently coexist with a newly eligible waiter; the next `enroll`, a successful
+`drop`, or `refreshWaitlist()` reconciles first (A5). I7 holds whenever records have not changed since the last call. Because every `enroll` reconciles first (A5), a duplicate request
 after a records change may promote a waiter before returning `AlreadyEnrolled`/`AlreadyWaitlisted`; this is deliberate, and a
 promoted waiter who calls `enroll` again gets `AlreadyEnrolled`. `RosterInvariants` in test support asserts I1-I6; I5 is only
 statically checkable when records never lose courses, which the randomized test guarantees.
