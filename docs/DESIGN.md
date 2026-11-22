@@ -17,7 +17,7 @@ promotion time and a learner's records can change between enrollment and promoti
 | # | Assumption | Decision |
 |---|---|---|
 | A1 | One offering, fixed capacity >= 1 | Constructors reject <= 0 |
-| A2 | Eligible = every prerequisite course is in the learner's completed set | Subset check; no grades, no corequisites |
+| A2 | Eligible = every prerequisite course is in the learner's completed set | Subset check; no grades, no corequisites. The required case is one course (e.g. MATH101); the set may hold more, all required. See section 9 for the optional any-of extension |
 | A3 | Ineligible at request time | `Ineligible(missing)`; not enrolled, not waitlisted, no state change |
 | A4 | **Ineligible at the front of the queue at promotion time** | **Skipped and retained** at original position; the next eligible waiter is promoted |
 | A5 | No queue-jumping | Free seats are filled from the waitlist before any new enroll request is evaluated |
@@ -97,11 +97,31 @@ Production mapping (not built): `SELECT ... FOR UPDATE` on the offering row, uni
 Acceptance-criterion-mapped unit tests; seeded randomized test (3 seeds x 10,000 ops, invariants after
 every step, seed in the failure message); concurrency tests (64 threads behind a start gate, repeated 50x);
 a mutation check (remove the lock from `enroll` and confirm the concurrency tests fail), and edge-case tests found by reviewing the
-test matrix and the code (multi-seat promotion, refresh no-op, empty prerequisites, shifting positions, records failures, null offering).
+test matrix and the code (multi-seat promotion, refresh no-op, empty prerequisites, shifting positions, records failures, null offering) and
+the any-of prerequisite extension.
 
-Results on JDK 22 (compiled with `release 21`): `mvn clean verify` -> 186 tests, 0 failures, `BUILD SUCCESS`. With the lock removed
+Results on JDK 22 (compiled with `release 21`): `mvn clean verify` -> 187 tests, 0 failures, `BUILD SUCCESS` (22 Nov 2026). With the lock removed
 from `enroll`, 125 of 150 concurrency runs failed (6 learners in a capacity-5 course, lost waitlist entries, duplicate sequence
 numbers, duplicate enrollment). Concurrency tests are probabilistic: they show the lock works and that the tests detect its absence,
 not that races are impossible.
 
 Known limitations and follow-up risks are listed in [LIMITATIONS.md](LIMITATIONS.md).
+
+## 9. Additional feature: flexible prerequisites (either course, or both)
+The required behavior is one prerequisite course (A2). To allow more courses to be supported without changing the service, eligibility
+sits behind the `EligibilityPolicy` interface, and `EnrollmentService` has a three-argument constructor that accepts a policy.
+
+| Policy | Rule | Example with options {MATH101, MATH102} |
+|---|---|---|
+| `PrerequisiteEligibilityPolicy` (default) | Learner must have **all** listed courses | needs both |
+| `AnyOfPrerequisitesPolicy` (extension) | Learner must have **at least one** listed course | MATH101 only, MATH102 only, or both are eligible; neither is not |
+
+- Constructing `AnyOfPrerequisitesPolicy` with an empty set throws `IllegalArgumentException`.
+- `missing(completed)` returns an empty set when eligible. Otherwise it returns every option, because any one of them would have been enough;
+  callers should not read that list as "all required".
+- The same policy instance is used when a request arrives and when a waiter is considered for promotion, so skip-and-retain (A4), no
+  queue-jumping (A5) and all invariants are unchanged. `EnrollmentService`, `EnrollmentRoster` and the existing tests did not change.
+- Not built, on purpose: mixed expressions such as "(A or B) and C", grade thresholds, or a configurable rule engine. The brief asks for the
+  stated prerequisite rule and no policy engine, so the default stays all-of.
+- Test: `EdgeCaseTest.anyOfPolicy_eligibleWithEitherOrBoth_rejectedWithNeither` (MATH101 only, MATH102 only and both are enrolled; PHYS100 is
+  rejected).

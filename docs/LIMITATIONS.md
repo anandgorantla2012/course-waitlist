@@ -27,3 +27,5 @@
 - Position lookup is O(w) because the waitlist is a linked map without an index.
 - No coverage or mutation-testing tooling (JaCoCo, PIT); mutation checking was done manually by removing
   the lock.
+- Any-of prerequisites (extension): `Ineligible.missing` lists every option, not just one; there is no support for mixed rules such as
+  "(A or B) and C", and the policy is chosen once at construction (it cannot differ per learner).
